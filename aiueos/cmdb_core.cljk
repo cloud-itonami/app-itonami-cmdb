@@ -1,0 +1,106 @@
+(ns cmdb.guest
+  "cmdb 資産台帳の判断コア — aiueos guest（pure judgment, :effects #{}）。
+
+  cloud-kotoba/cmdb の service（describe/ingest/diff）のうち、ホスト非依存の
+  純粋計算だけを抜き出したもの。refusal/limits/入出力は adapter
+ （src/cmdb/core.cljk）と service 側に残し、ここにあるのは数だけ。
+
+  guest は文字列を扱わない（mihari.guest と同じ約束）。adapter が文字列を
+  i64 コードに変えて渡す:
+
+    criticality  critical=3 high=2 medium=1 low=0（他は -1）
+    data-class   sensitive=2 personal=1 public/internal=0（他は -1）
+    version      UTF-16 code unit の :vector-i64
+
+  符号:
+    criticality-points  3→40 2→30 1→20 0→10（不正は -1）
+    data-class-points   2→20 1→10 0→0（不正は -1）
+    priority-score      両者の和。どちらか -1 なら -1
+    version-changed?    before と after が違えば 1、同じなら 0
+
+  parity: test/fixtures/parity.edn の行を、関数ごとに 1 本の test-* に
+  まとめて手で写してある（guest は EDN を読めない）。
+  表に行を足したら、ここにも足すこと。
+
+  テストはゼロ引数 `test-*`（戻り 1 = pass、0 = fail）。実行:
+  <amu>/bin/amu test aiueos/cmdb_core.cljk"
+  (:export [main criticality-points data-class-points priority-score
+            version-changed?
+            test-criticality-points test-data-class-points
+            test-priority-score test-version-changed?]))
+
+(defn main [] :i64
+  1)
+
+(defn criticality-points [level :i64] :i64
+  (if (< level 0)
+    -1
+    (if (= level 3)
+      40
+      (if (= level 2)
+        30
+        (if (= level 1)
+          20
+          (if (= level 0)
+            10
+            -1))))))
+
+(defn data-class-points [class :i64] :i64
+  (if (< class 0)
+    -1
+    (if (= class 2)
+      20
+      (if (= class 1)
+        10
+        0))))
+
+(defn priority-score [criticality :i64 data-class :i64] :i64
+  (let [c (criticality-points criticality)
+        d (data-class-points data-class)]
+    (if (or (= c -1) (= d -1))
+      -1
+      (+ c d))))
+
+(defn- changed-at [before :vector-i64 after :vector-i64 n :i64 i :i64] :i64
+  (if (< i n)
+    (if (= (vector-at before i) (vector-at after i))
+      (changed-at before after n (+ i 1))
+      1)
+    0))
+
+(defn version-changed? [before :vector-i64 after :vector-i64] :i64
+  (let [n (vector-count before)]
+    (if (= n (vector-count after))
+      (changed-at before after n 0)
+      1)))
+
+(defn test-criticality-points [] :i64
+  (if (and (= (criticality-points 3) 40)
+           (= (criticality-points 2) 30)
+           (= (criticality-points 1) 20)
+           (= (criticality-points 0) 10)
+           (= (criticality-points -1) -1)
+           (= (criticality-points 4) -1))
+    1 0))
+
+(defn test-data-class-points [] :i64
+  (if (and (= (data-class-points 2) 20)
+           (= (data-class-points 1) 10)
+           (= (data-class-points 0) 0)
+           (= (data-class-points -1) -1))
+    1 0))
+
+(defn test-priority-score [] :i64
+  (if (and (= (priority-score 3 2) 60)
+           (= (priority-score 2 1) 40)
+           (= (priority-score 0 0) 10)
+           (= (priority-score -1 2) -1)
+           (= (priority-score 3 -1) -1))
+    1 0))
+
+(defn test-version-changed? [] :i64
+  (if (and (= (version-changed? [49 46 50] [49 46 50]) 0)
+           (= (version-changed? [49] [50]) 1)
+           (= (version-changed? [] [49]) 1)
+           (= (version-changed? [] []) 0))
+    1 0))

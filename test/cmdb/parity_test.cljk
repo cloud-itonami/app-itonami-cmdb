@@ -1,0 +1,33 @@
+(ns cmdb.parity-test
+  "parity fixture — test/fixtures/parity.edn の全行を adapter（cmdb.core）で
+  照合する。同じ表を guest の test-*（amu test）も通す。"
+  (:require ["fs" :as fs]
+            [cljs.test :refer [deftest is testing]]
+            [clojure.edn :as edn]
+            [cmdb.core :as core]))
+
+(def rows (edn/read-string (fs/readFileSync "test/fixtures/parity.edn" "utf8")))
+
+(def fns {"criticality-points" core/criticality-points
+          "data-class-points"  core/data-class-points
+          "priority-score"     core/priority-score
+          "version-changed?"   core/version-changed?})
+
+(deftest table-is-not-empty
+  (is (= 19 (count rows)) "行を足したら guest の test-* と docstring の件数も直す"))
+
+(deftest every-row-matches
+  (doseq [{f :fn args :args expect :expect note :note} rows]
+    (testing (str f " " (pr-str args) (when (seq note) (str " (" note ")")))
+      (is (contains? fns f))
+      (is (= expect (apply (get fns f) args))))))
+
+(deftest strings-bridge-to-the-same-codes
+  (testing "文字列 → コード → 点数が表の行と同じ数になる"
+    (is (= 60 (core/priority-score-of "critical" "sensitive")))
+    (is (= 40 (core/priority-score-of "high" "personal")))
+    (is (= 10 (core/priority-score-of "low" "public")))
+    (is (= -1 (core/priority-score-of "unknown" "sensitive"))))
+  (testing "文字列 → UTF-16 code unit が表の行と同じ数になる"
+    (is (= [49 46 50] (core/str-codes "1.2")))
+    (is (= [35211 24373 12426] (core/str-codes "見張り")))))

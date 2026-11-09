@@ -1,0 +1,5 @@
+{:aiueos/kind :app
+ :aiueos/id "cmdb"
+ :aiueos/version 1
+ :aiueos/guest "aiueos/cmdb_core.cljk"
+ :aiueos/adapter "src/cmdb/core.cljk"}

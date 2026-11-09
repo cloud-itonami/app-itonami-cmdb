@@ -1,0 +1,33 @@
+;; cmdb parity fixture — guest（aiueos/cmdb_core.cljk）と adapter（src/cmdb/core.cljk）
+;; が同じ数を返すことの表。
+;;
+;; - adapter 側: test/cmdb/parity_test.cljk がこの表を全件読んで照合する。
+;; - guest 側: 同じ行を aiueos/cmdb_core.cljk の test-* に手で書いてある
+;;   （guest は EDN を読めない）。行を足したら test-* も足す。
+;;
+;; 符号: criticality critical=3 high=2 medium=1 low=0（他は -1）
+;;       data-class sensitive=2 personal=1 public/internal=0（他は -1）
+;;       version は UTF-16 code unit のベクタ（[] は空文字）
+[;; criticality-points
+ {:fn "criticality-points" :args [3] :expect 40 :note "critical"}
+ {:fn "criticality-points" :args [2] :expect 30 :note "high"}
+ {:fn "criticality-points" :args [1] :expect 20 :note "medium"}
+ {:fn "criticality-points" :args [0] :expect 10 :note "low"}
+ {:fn "criticality-points" :args [-1] :expect -1 :note "invalid"}
+ {:fn "criticality-points" :args [4] :expect -1 :note "out of range"}
+ ;; data-class-points
+ {:fn "data-class-points" :args [2] :expect 20 :note "sensitive"}
+ {:fn "data-class-points" :args [1] :expect 10 :note "personal"}
+ {:fn "data-class-points" :args [0] :expect 0 :note "public/internal"}
+ {:fn "data-class-points" :args [-1] :expect -1 :note "invalid"}
+ ;; priority-score
+ {:fn "priority-score" :args [3 2] :expect 60 :note "critical+sensitive"}
+ {:fn "priority-score" :args [2 1] :expect 40 :note "high+personal"}
+ {:fn "priority-score" :args [0 0] :expect 10 :note "low+public"}
+ {:fn "priority-score" :args [-1 2] :expect -1 :note "bad criticality"}
+ {:fn "priority-score" :args [3 -1] :expect -1 :note "bad data-class"}
+ ;; version-changed?
+ {:fn "version-changed?" :args [[49 46 50] [49 46 50]] :expect 0 :note "1.2 = 1.2"}
+ {:fn "version-changed?" :args [[49] [50]] :expect 1 :note "1 vs 2"}
+ {:fn "version-changed?" :args [[] [49]] :expect 1 :note "empty vs 1"}
+ {:fn "version-changed?" :args [[] []] :expect 0 :note "empty = empty"}]

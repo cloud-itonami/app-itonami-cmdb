@@ -1,0 +1,10 @@
+{
+  "name": "app-itonami-cmdb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "cmdb — 資産台帳の itonami dapp（slice 1: 判断コア）",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "test": "kbb --backend sci --classpath src:test test/run_tests.cljk"
+  }
+}

@@ -1,0 +1,8 @@
+(ns run-tests
+  "kbb 実行のテスト runner（npm test から呼ばれる。mihari と同じ形）。"
+  (:require [cljs.test :refer [run-tests]]
+            [cmdb.parity-test]))
+
+(let [{:keys [fail error]} (run-tests 'cmdb.parity-test)]
+  (when (pos? (+ fail error))
+    (set! (.-exitCode js/process) 1)))
